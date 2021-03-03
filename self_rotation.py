@@ -44,6 +44,7 @@ parser.add_argument('--range-of-lr', nargs='+', type=int,help='1234 1234 1234',d
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')        #체크포인트에서 load할때 필요                    
 parser.add_argument('--rotation-var',default='rotation_2')
+parser.add_argument('--rotation-noise',default='original')
 
 best_prec1 = 0
 def main():
@@ -68,13 +69,15 @@ def main():
                 'batch size: {2}\n'
                 'start learning rate: {3}\n'
                 'range of learning rate: {4}\n'
-                'rotation: {5}\n'.format(
+                'rotation: {5}\n'
+                'rotation-noise: {6}\n'.format(
                     args.arch,
                     args.epochs,
                     args.batch_size,
                     args.lr,
                     args.range_of_lr,
-                    args.rotation_var
+                    args.rotation_var,
+                    args.rotation_noise
                 ))
     file.close()
 
@@ -108,7 +111,7 @@ def main():
         
         
         
-        train(train_loader, model, criterion, optimizer, epoch, rotation,rotation_var=args.rotation_var,start_time=start_time)
+        train(train_loader, model, criterion, optimizer, epoch, rotation,rotation_var=args.rotation_var,start_time=start_time,rotation_noise=args.rotation_noise)
         scheduler.step()
 
         # evaluate on validation set
@@ -136,7 +139,7 @@ def main():
         validate(val_loader, model, criterion)
         return
 
-def train(train_loader, model, criterion, optimizer, epoch,rotation,rotation_var,start_time):
+def train(train_loader, model, criterion, optimizer, epoch,rotation,rotation_var,start_time,rotation_noise):
     """
         Run one train epoch
     """ 
@@ -153,7 +156,7 @@ def train(train_loader, model, criterion, optimizer, epoch,rotation,rotation_var
         target_var = target
 
         if rotation==True: 
-            input_var,target_rot,target_var = rotation_loss.__dict__[args.rotation_var](input_var,target_var)  
+            input_var,target_rot,target_var = rotation_loss.__dict__[args.rotation_var](input_var,target_var,rotation_noise)  
             optimizer.zero_grad()
             output, output_rot = model(input_var)
             loss = criterion(output,target_var) + torch.sqrt(regression_loss(output_rot,target_rot))
